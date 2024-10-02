@@ -49,6 +49,17 @@ class OctaneMemoryBank(Enum):
 
 @dataclass_json
 @dataclass
+class OctaneFeatureSet:
+    model_name: str
+    region: str
+    firmware_version: str
+    antenna_count: int
+    min_tx_power: float
+    max_tx_power: float
+
+
+@dataclass_json
+@dataclass
 class OctaneTagReport:
     Epc: bytearray = None
     AntennaPortNumber: int = None
@@ -94,32 +105,61 @@ class Octane:
             self.driver.Connect(ip)
             self.driver.TagsReported += self._octane_notification_callback
             self.driver.TagOpComplete += self._octane_tag_op_complete_callback
+            logger.debug('connect: Success')
             self.set_default_settings()
             return True
         except Exception as e:
             logger.error(e)
+            logger.debug('connect: Error')
             return False
 
     def disconnect(self):
-        # Disconnect from the reader.
-        self.driver.Disconnect()
-        return False
+        try:
+            # Disconnect from the reader.
+            self.driver.Disconnect()
 
-    def query_feature_set(self):
-        reader_capabilities = self.driver.QueryFeatureSet()
-        return reader_capabilities
+            logger.debug('disconnect: Success')
+            return True
+        except Exception as e:
+            logger.error(e)
+            logger.debug('disconnect: Error')
+            return False
+
+    def query_feature_set(self) -> OctaneFeatureSet:
+        try:
+            feature_set = self.driver.QueryFeatureSet()
+            processed_feature_set = OctaneFeatureSet(
+                model_name=feature_set.ModelName,
+                region=feature_set.CommunicationsStandard.ToString(),
+                firmware_version=feature_set.FirmwareVersion,
+                antenna_count=feature_set.AntennaCount,
+                min_tx_power=feature_set.TxPowers[0].Dbm,
+                max_tx_power=feature_set.TxPowers[len(feature_set.TxPowers) - 1].Dbm
+            )
+            logger.debug('query_feature_set: ' + str(processed_feature_set))
+            return processed_feature_set
+        except Exception as e:
+            logger.error(e)
+            logger.debug('query_feature_set: Error')
+            return False
 
     def set_default_settings(self):
         try:
             settings = self.driver.QueryDefaultSettings()
             self.driver.ApplySettings(settings)
+            logger.debug('set_default_settings: Success')
             return True
         except Exception as e:
             logger.error(e)
+            logger.debug('set_default_settings: Error')
             return False
 
     def set_mode(self, reader_mode: OctaneReaderMode, search_mode: OctaneSearchMode, session: int):
         try:
+            logger.debug('set_mode:' +
+                         ' ' + str(reader_mode) +
+                         ', ' + str(search_mode) +
+                         '), session(' + str(session) + ')')
             # Get current settings.
             settings = self.driver.QuerySettings()
 
@@ -129,15 +169,21 @@ class Octane:
 
             # Apply the newly modified settings.
             self.driver.ApplySettings(settings)
+            logger.debug('set_mode: Success')
             return True
         except Exception as e:
             logger.error(e)
+            logger.debug('set_mode: Error')
             return False
 
     def set_report_flags(self, include_antenna_port_numbers: bool = False,
                          include_channel: bool = False,
                          include_peadk_rssi: bool = False):
         try:
+            logger.debug('set_report_flags:' +
+                         ' include_antenna_port_numbers(' + str(include_antenna_port_numbers) +
+                         '), include_channel(' + str(include_channel) +
+                         '), include_peadk_rssi(' + str(include_peadk_rssi) + ')')
             # Get current settings.
             settings = self.driver.QuerySettings()
             settings.Report.IncludeAntennaPortNumber = include_antenna_port_numbers
@@ -146,9 +192,11 @@ class Octane:
 
             # Apply the newly modified settings.
             self.driver.ApplySettings(settings)
+            logger.debug('set_report_flags: Success')
             return True
         except Exception as e:
             logger.error(e)
+            logger.debug('set_report_flags: Error')
             return False
 
     def get_tx_power(self):
@@ -156,29 +204,34 @@ class Octane:
         power = []
         for antenna in settings.Antennas:
             power.append(antenna.TxPowerInDbm)
+        logger.debug('get_tx_power: ' + str(power))
         return power
 
     def set_tx_power(self, dbm):
         # Same power to all antennas only supported
         try:
+            logger.debug('set_tx_power: ' + str(dbm))
             # Get current settings.
             settings = self.driver.QuerySettings()
             settings.Antennas.TxPowerInDbm = dbm
 
             # Apply the newly modified settings.
             self.driver.ApplySettings(settings)
+            logger.debug('set_tx_power: Success')
             return True
         except Exception as e:
             logger.error(e)
+            logger.debug('set_tx_power: Error')
             return False
 
     def get_antenna_config(self):
         feature_set = self.query_feature_set()
         settings = self.driver.QuerySettings()
-        antenna_config = [False] * feature_set.AntennaCount
+        antenna_config = [False] * feature_set.antenna_count
         n_enabled_antennas = settings.Antennas.Length
         for i in range(0, n_enabled_antennas):
             antenna_config[settings.Antennas.AntennaConfigs[i].PortNumber - 1] = True
+        logger.debug('get_antenna_config: ' + str(antenna_config))
         return antenna_config
 
     def set_antenna_config(self, antenna_config: List[bool]):
@@ -186,6 +239,7 @@ class Octane:
             raise Exception('At least one antenna has to be active')
 
         try:
+            logger.debug('set_antenna_config: ' + str(antenna_config))
             # Get current settings.
             settings = self.driver.QuerySettings()
 
@@ -206,9 +260,11 @@ class Octane:
 
             # Apply the newly modified settings.
             self.driver.ApplySettings(settings)
+            logger.debug('set_antenna_config: Success')
             return True
         except Exception as e:
             logger.error(e)
+            logger.debug('set_antenna_config: Error')
             return False
 
     def start(self):
