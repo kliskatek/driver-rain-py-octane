@@ -1,7 +1,6 @@
 import datetime
 import logging
 import time
-from binascii import hexlify
 from dataclasses import dataclass
 from enum import Enum
 from queue import Queue
@@ -17,8 +16,8 @@ from src.octane_sdk_wrapper.helpers.clr2py import net_uint16_list_to_py_bytearra
 octane_sdk_dll_path = files('src.octane_sdk_wrapper').joinpath('lib').joinpath('Impinj.OctaneSdk.dll')
 clr.AddReference(str(octane_sdk_dll_path))
 from Impinj.OctaneSdk import ImpinjReader, TagReport, AntennaConfig, ReaderMode, SearchMode, MemoryBank, TagOpSequence, \
-    TagReadOp, BitPointers, TagData, TagOpReport, TagReadOpResult, ReadResultStatus, TagWriteOp, TagWriteOpResult, WriteResultStatus
-
+    TagReadOp, BitPointers, TagData, TagOpReport, TagReadOpResult, ReadResultStatus, TagWriteOp, TagWriteOpResult, \
+    WriteResultStatus
 
 logger = logging.getLogger(__name__)
 
@@ -228,9 +227,14 @@ class Octane:
                 if result.Result == ReadResultStatus.Success:
                     data = net_uint16_list_to_py_bytearray(result.Data.ToList())
                     self._tag_read_op_queue.put(data)
+                else:
+                    self._tag_read_op_queue.put(None)
+
             if type(result) is TagWriteOpResult:
                 if result.Result == WriteResultStatus.Success:
                     self._tag_write_op_queue.put(True)
+                else:
+                    self._tag_write_op_queue.put(False)
 
     def read(self, target: bytearray | str | None, bank: OctaneMemoryBank, word_pointer: int,
              word_count: int) -> bytearray | None:
@@ -247,8 +251,12 @@ class Octane:
             seq.TargetTag.Data = None
         else:
             if type(target) is bytearray:
-                target = str(hexlify(target)).strip("b'")
+                target = target.hex()
             seq.TargetTag.Data = target
+
+        logger.debug('Read tag(' + target + '), '
+                     + str(bank) + ', pointer(' + str(word_pointer)
+                     + '), count(' + str(word_count) + ')')
         self.driver.AddOpSequence(seq)
         if not self._reader_is_on:
             self.driver.Start()
@@ -259,8 +267,13 @@ class Octane:
         if not self._reader_is_on:
             self.driver.Stop()
         if self._tag_read_op_queue.empty():
+            logger.debug('Unable to read data (timeout)')
             return None
         data = self._tag_read_op_queue.get()
+        if data is None:
+            logger.debug('Unable to read data (error)')
+        else:
+            logger.debug('Read data: 0x' + data.hex())
         return data
 
     def write(self, target: bytearray | str | None, bank: OctaneMemoryBank, word_pointer: int,
@@ -270,7 +283,7 @@ class Octane:
         write_op.MemoryBank = bank.value
         write_op.WordPointer = word_pointer
         if data is bytearray:
-            data = str(hexlify(data)).strip("b'")
+            data = data.hex()
         write_op.Data = TagData.FromHexString(data)
         seq.Ops.Add(write_op)
 
@@ -280,8 +293,12 @@ class Octane:
             seq.TargetTag.Data = None
         else:
             if type(target) is bytearray:
-                target = str(hexlify(target)).strip("b'")
+                target = target.hex()
             seq.TargetTag.Data = target
+
+        logger.debug('Write tag(' + target + '), '
+                     + str(bank) + ', pointer(' + str(word_pointer)
+                     + '), data(' + str(data) + ')')
         self.driver.AddOpSequence(seq)
         if not self._reader_is_on:
             self.driver.Start()
@@ -292,6 +309,12 @@ class Octane:
         if not self._reader_is_on:
             self.driver.Stop()
         if self._tag_write_op_queue.empty():
+            self.driver.DeleteOpSequence(seq.Id)
+            logger.debug('Unable to write data (timeout)')
             return False
-        self._tag_write_op_queue.get()
-        return True
+        result = self._tag_write_op_queue.get()
+        if result is False:
+            logger.debug('Unable to write data (error)')
+        else:
+            logger.debug('Write data success.')
+        return result

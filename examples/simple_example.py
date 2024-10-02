@@ -2,7 +2,6 @@ import json
 import logging
 import logging.config
 import time
-from binascii import hexlify
 
 # To use from source
 from src.octane_sdk_wrapper import Octane, OctaneTagReport, OctaneMemoryBank
@@ -63,14 +62,16 @@ reader.set_report_flags(include_antenna_port_numbers=True,
 reader.start()
 time.sleep(.5)
 reader.stop()
+
 if some_epc is not None:
     logging.info('Writing 0x1234 to 0@UM')
-    reader.write(target=None, bank=OctaneMemoryBank.User, word_pointer=0, data="1234")
-    data = reader.read(target=None, bank=OctaneMemoryBank.User, word_pointer=0, word_count=1)
-    logging.info('Read from  0@UM' + str(hexlify(data)))
+    reader.write(target=some_epc, bank=OctaneMemoryBank.User, word_pointer=0, data="1234")
+    logging.info('Reading from 0@UM')
+    reader.read(target=some_epc, bank=OctaneMemoryBank.User, word_pointer=0, word_count=1)
     logging.info('Writing 0x5678 to 0@UM')
-    reader.write(target=None, bank=OctaneMemoryBank.User, word_pointer=0, data="5678")
-    data = reader.read(target=None, bank=OctaneMemoryBank.User, word_pointer=0, word_count=1)
-    logging.info('Read from  0@UM' + str(hexlify(data)))
+    reader.write(target=some_epc, bank=OctaneMemoryBank.User, word_pointer=0, data="5678")
+    logging.info('Reading from 0@UM')
+    reader.read(target=some_epc, bank=OctaneMemoryBank.User, word_pointer=0, word_count=1)
+
 
 reader.disconnect()
