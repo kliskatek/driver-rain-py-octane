@@ -1,7 +1,7 @@
 # octane-sdk-wrapper
 
-[![PyPI - Version](https://img.shields.io/pypi/v/octane.svg)](https://pypi.org/project/octane)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/octane.svg)](https://pypi.org/project/octane)
+[![PyPI - Version](https://img.shields.io/pypi/v/octane-sdk-wrapper.svg)](https://pypi.org/project/octane-sdk-wrapper)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/octane-sdk-wrapper.svg)](https://pypi.org/project/octane-sdk-wrapper)
 
 -----
 
