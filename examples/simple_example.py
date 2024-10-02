@@ -1,13 +1,12 @@
-import json
 import logging
 import logging.config
 import time
 
 # To use from source
-from src.octane_sdk_wrapper import Octane, OctaneTagReport, OctaneMemoryBank
+#from src.octane_sdk_wrapper import Octane, OctaneTagReport, OctaneMemoryBank
 
 # To use from installed package
-# from octane_sdk_wrapper import Octane, OctaneTagReport
+from octane_sdk_wrapper import Octane, OctaneTagReport, OctaneMemoryBank
 
 logging.basicConfig(level=logging.DEBUG)
 
