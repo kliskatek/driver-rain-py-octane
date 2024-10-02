@@ -1,7 +1,10 @@
-from datetime import datetime
+import datetime
 import logging
+import time
+from binascii import hexlify
 from dataclasses import dataclass
 from enum import Enum
+from queue import Queue
 from typing import List, Callable
 
 import clr
@@ -13,9 +16,11 @@ from src.octane_sdk_wrapper.helpers.clr2py import net_uint16_list_to_py_bytearra
 
 octane_sdk_dll_path = files('src.octane_sdk_wrapper').joinpath('lib').joinpath('Impinj.OctaneSdk.dll')
 clr.AddReference(str(octane_sdk_dll_path))
-from Impinj.OctaneSdk import ImpinjReader, TagReport, AntennaConfig, ReaderMode, SearchMode
-
+from Impinj.OctaneSdk import ImpinjReader, TagReport, AntennaConfig, ReaderMode, SearchMode, MemoryBank, TagOpSequence, \
+    TagReadOp, BitPointers, TagData, TagOpReport, TagReadOpResult, ReadResultStatus
 clr.AddReference('System.Collections')
+clr.AddReference('System')
+from System import String
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +41,13 @@ class OctaneSearchMode(Enum):
     TagFocus = SearchMode.TagFocus
     SingleTargetReset = SearchMode.SingleTargetReset
     DualTargetBtoASelect = SearchMode.DualTargetBtoASelect
+
+
+class OctaneMemoryBank(Enum):
+    Reserved = MemoryBank.Reserved
+    Epc = MemoryBank.Epc
+    Tid = MemoryBank.Tid
+    User = MemoryBank.User
 
 
 @dataclass_json
@@ -60,6 +72,8 @@ class Octane:
     def __init__(self):
         self.driver = ImpinjReader()
         self.notification_callback = None
+        self._reader_is_on = False
+        self._tag_read_op_queue: Queue = Queue()
 
     def _octane_notification_callback(self, sender: ImpinjReader, report: TagReport):
         if self.notification_callback is not None:
@@ -81,6 +95,7 @@ class Octane:
         try:
             self.driver.Connect(ip)
             self.driver.TagsReported += self._octane_notification_callback
+            self.driver.TagOpComplete += self._octane_tag_op_complete_callback
             self.set_default_settings()
             return True
         except Exception as e:
@@ -201,8 +216,47 @@ class Octane:
     def start(self):
         # Start reading.
         self.driver.Start()
-        return False
+        self._reader_is_on = True
 
     def stop(self):
         # Stop reading.
         self.driver.Stop()
+        self._reader_is_on = False
+
+    def _octane_tag_op_complete_callback(self, reader: ImpinjReader, report: TagOpReport):
+        for result in report.Results:
+            if type(result) is TagReadOpResult:
+                if result.Result == ReadResultStatus.Success:
+                    data = net_uint16_list_to_py_bytearray(result.Data.ToList())
+                    self._tag_read_op_queue.put(data)
+
+        pass
+
+    def read(self, target: bytearray | str | None, bank: OctaneMemoryBank, word_pointer: int, word_count: int) -> bytearray | None:
+        seq = TagOpSequence()
+        read_op = TagReadOp()
+        read_op.MemoryBank = bank.value
+        read_op.WordPointer = word_pointer
+        read_op.WordCount = word_count
+        seq.Ops.Add(read_op)
+
+        seq.TargetTag.MemoryBank = MemoryBank.Epc
+        seq.TargetTag.BitPointer = BitPointers.Epc
+        if target is None:
+            seq.TargetTag.Data = None
+        else:
+            if type(target) is bytearray:
+                target = str(hexlify(target)).strip("b'")
+            seq.TargetTag.Data = target
+        self.driver.AddOpSequence(seq)
+        if not self._reader_is_on:
+            self.driver.Start()
+
+        timeout = datetime.datetime.now() + datetime.timedelta(seconds=3)
+        while self._tag_read_op_queue.empty() and (datetime.datetime.now() < timeout):
+            time.sleep(0.01)
+        if not self._reader_is_on:
+            self.driver.Stop()
+        if self._tag_read_op_queue.empty():
+            return None
+        return self._tag_read_op_queue.get()
