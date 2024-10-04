@@ -11,9 +11,15 @@ from importlib.resources import files
 
 from dataclasses_json import dataclass_json
 
-from src.octane_sdk_wrapper.helpers.clr2py import net_uint16_list_to_py_bytearray
+from .helpers.clr2py import net_uint16_list_to_py_bytearray
 
-octane_sdk_dll_path = files('src.octane_sdk_wrapper').joinpath('lib').joinpath('Impinj.OctaneSdk.dll')
+# Detect Source or Package mode
+top_package = __name__.split('.')[0]
+if top_package == 'src':
+    octane_sdk_wrapper_package = files('src.octane_sdk_wrapper')
+else:
+    octane_sdk_wrapper_package = files('octane_sdk_wrapper')
+octane_sdk_dll_path = octane_sdk_wrapper_package.joinpath('lib').joinpath('Impinj.OctaneSdk.dll')
 clr.AddReference(str(octane_sdk_dll_path))
 from Impinj.OctaneSdk import ImpinjReader, TagReport, AntennaConfig, ReaderMode, SearchMode, MemoryBank, TagOpSequence, \
     TagReadOp, BitPointers, TagData, TagOpReport, TagReadOpResult, ReadResultStatus, TagWriteOp, TagWriteOpResult, \
@@ -271,11 +277,13 @@ class Octane:
         # Start reading.
         self.driver.Start()
         self._reader_is_on = True
+        logger.debug('start')
 
     def stop(self):
         # Stop reading.
         self.driver.Stop()
         self._reader_is_on = False
+        logger.debug('stop')
 
     def _octane_tag_op_complete_callback(self, reader: ImpinjReader, report: TagOpReport):
         for result in report.Results:
