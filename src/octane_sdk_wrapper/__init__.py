@@ -205,7 +205,7 @@ class Octane:
             logger.debug('set_report_flags: Error')
             return False
 
-    def get_tx_power(self):
+    def get_tx_power(self) -> List[float]:
         settings = self.driver.QuerySettings()
         power = []
         for antenna in settings.Antennas:
