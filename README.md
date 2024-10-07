@@ -61,7 +61,7 @@ reader.set_antenna_config([True, False])
 tx_power_per_antenna: List[float] = reader.get_tx_power()
 logging.info('Setting max TX power')
 reader.set_tx_power(feature_set.max_tx_power)
-reader.get_tx_power()
+tx_power_dbm: float = reader.get_tx_power()
 ```
 ### Perform continuous asynchronous inventory
 
