@@ -9,7 +9,7 @@
 ## Table of Contents
 
 - [Installation](#installation)
-- - [Usage](#usage)
+- [Usage](#usage)
   - [Connect to the reader](#connect-to-the-reader)
   - [Get basic information about the reader](#get-basic-information-about-the-reader)
   - [Configure the reader](#configure-the-reader)
