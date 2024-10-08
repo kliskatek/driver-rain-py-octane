@@ -27,7 +27,7 @@ classifiers = [
 ]
 dependencies = [
   'pythonnet',
-  'dataclasses_json'
+  'dataclasses-json'
 ]
 
 [project.optional-dependencies]
