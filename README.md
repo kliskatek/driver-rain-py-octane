@@ -8,6 +8,7 @@
 
 ## Table of Contents
 
+- [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
   - [Connect to the reader](#connect-to-the-reader)
@@ -17,6 +18,10 @@
   - [Execute Read/Write operations](#execute-readwrite-operations)
 
 - [License](#license)
+
+## Requirements
+
+As the python package is just wrapping the .NET dll of Octane SDK, the [.NET Runtimes](https://dotnet.microsoft.com/es-es/download/dotnet) needs to be installed on the system.
 
 ## Installation
 
