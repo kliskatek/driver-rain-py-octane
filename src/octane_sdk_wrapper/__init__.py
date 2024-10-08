@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from enum import Enum
 from queue import Queue
 from typing import List, Callable, Any
-
+import pythonnet
+pythonnet.load("coreclr")
 import clr
 from importlib.resources import files
 

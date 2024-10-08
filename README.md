@@ -2,7 +2,7 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/octane-sdk-wrapper.svg)](https://pypi.org/project/octane-sdk-wrapper)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/octane-sdk-wrapper.svg)](https://pypi.org/project/octane-sdk-wrapper)
-![OS](https://img.shields.io/badge/os-windows-blue)
+![OS](https://img.shields.io/badge/os-windows%20|%20linux%20|%20macos-blue)
 -----
 *Python driver for Impinj UHF RFID readers wrapping octane SDK*
 
