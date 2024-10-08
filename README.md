@@ -61,7 +61,6 @@ reader.set_antenna_config([True, False])
 tx_power_per_antenna: List[float] = reader.get_tx_power()
 logging.info('Setting max TX power')
 reader.set_tx_power(feature_set.max_tx_power)
-tx_power_dbm: float = reader.get_tx_power()
 ```
 ### Perform continuous asynchronous inventory
 
@@ -95,12 +94,12 @@ OctaneTagReport(Epc=bytearray(b'\xe2\x00\x00\x195\x10\x02\x07\x08\x80\xc3+'), An
 `
 ### Execute Read/Write operations
 ```python
-reader.write(target=some_epc, 
+reader.write(target="1234567890ABCDEF", 
              bank=OctaneMemoryBank.User, 
              word_pointer=0, 
              data="1234")
 
-data: bytearray = reader.read(target=some_epc, 
+data: bytearray = reader.read(target="1234567890ABCDEF", 
                               bank=OctaneMemoryBank.User, 
                               word_pointer=0, 
                               word_count=1)
