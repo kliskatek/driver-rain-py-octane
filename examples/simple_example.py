@@ -4,7 +4,7 @@ import time
 from typing import List
 
 # To use from source
-from src.octane_sdk_wrapper import Octane, OctaneTagReport, OctaneMemoryBank
+from src.octane_sdk_wrapper import Octane, OctaneTagReport, OctaneMemoryBank, OctaneReaderMode, OctaneSearchMode
 
 # To use from installed package
 # from octane_sdk_wrapper import Octane, OctaneTagReport, OctaneMemoryBank
@@ -31,6 +31,8 @@ logging.info('Setting max TX power')
 reader.set_tx_power(feature_set.max_tx_power)
 tx_power_per_antenna: List[float] = reader.get_tx_power()
 
+reader.set_mode(reader_mode=OctaneReaderMode.DenseReaderM4, search_mode=OctaneSearchMode.DualTarget, session=0)
+
 ## INVENTORY ASYNC
 some_epc: bytearray | None = None
 
@@ -53,7 +55,7 @@ reader.set_report_flags(include_antenna_port_numbers=True,
 reader.start()
 
 # Do other stuff
-time.sleep(.5)
+time.sleep(1)
 
 # Stop inventory stream
 reader.stop()
